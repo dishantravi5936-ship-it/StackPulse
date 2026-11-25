@@ -12,7 +12,10 @@ process.env.NODE_ENV = 'test';
 
 const database = require('../src/database/db');
 const db = database.default as import('better-sqlite3').Database;
-const trustPulse = require('../src/services/trustpulse.service').default;
+const trustPulseModule = require('../src/services/trustpulse.service');
+const trustPulse = trustPulseModule.default;
+const calculateCoverage: typeof import('../src/services/trustpulse.service').calculateCoverage =
+  trustPulseModule.calculateCoverage;
 const uptimeService = require('../src/services/uptime.service').default;
 const incidentLens = require('../src/services/incidentlens.service').default;
 
@@ -85,6 +88,30 @@ describe('TrustPulse schedule-aware reliability metrics', () => {
     fs.rmSync(temporaryDirectory, { recursive: true, force: true });
   });
 
+  test('calculates completed failures, missing checks, uptime, and coverage with validated counts', () => {
+    expect(calculateCoverage(10, 6, 5)).toEqual({
+      expected: 10,
+      completed: 6,
+      successful: 5,
+      failed: 1,
+      missing: 4,
+      observedUptime: 83.33,
+      coverage: 60,
+    });
+    expect(calculateCoverage(0, 0, 0)).toEqual({
+      expected: 0,
+      completed: 0,
+      successful: 0,
+      failed: 0,
+      missing: 0,
+      observedUptime: null,
+      coverage: null,
+    });
+    expect(() => calculateCoverage(2, 3, 1)).toThrow('Invalid monitoring counts');
+    expect(() => calculateCoverage(2, 1, 2)).toThrow('Invalid monitoring counts');
+    expect(() => calculateCoverage(1.5, 1, 1)).toThrow('Invalid monitoring counts');
+  });
+
   test('keeps 100% observed uptime separate from 60% monitoring coverage', () => {
     const now = Date.now();
     trustPulse.recordEngineState('native', 'available', null, true, now);
@@ -98,6 +125,7 @@ describe('TrustPulse schedule-aware reliability metrics', () => {
     expect(result.expectedChecks).toBe(10);
     expect(result.completedChecks).toBe(6);
     expect(result.successfulChecks).toBe(6);
+    expect(result.failedChecks).toBe(0);
     expect(result.missingChecks).toBe(4);
     expect(result.observedUptimePercent).toBe(100);
     expect(result.monitoringCoveragePercent).toBe(60);

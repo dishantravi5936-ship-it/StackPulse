@@ -11,11 +11,21 @@ router.get('/', async (_req: Request, res: Response) => {
   const endpoints = await Promise.all(endpointService.listPublicEnabled().map(async (endpoint) => {
     const latest = monitoringService.latestForEndpoint(endpoint.id);
     const uptime = await uptimeService.getForEndpoint(endpoint.id);
+    const summary = monitoringService.getPublicSummary(endpoint.id);
     return {
       id: endpoint.id,
       name: endpoint.name,
       group: endpoint.group_name,
-      status: !latest ? 'unknown' : latest.success ? 'up' : 'down',
+      publicSlug: endpoint.public_slug,
+      status: summary.serviceState === 'unknown'
+        ? 'unknown'
+        : !latest
+          ? 'unknown'
+          : latest.success
+            ? 'up'
+            : 'down',
+      monitoringFreshness: summary.monitoringFreshness,
+      monitoringCoveragePercent: summary.monitoringCoveragePercent,
       latencyMs: latest?.latencyMs ?? null,
       lastChecked: latest?.checkedAt ?? null,
       uptime,

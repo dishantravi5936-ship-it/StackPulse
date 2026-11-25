@@ -79,7 +79,7 @@ describe('bounded Failure Verification', () => {
     expect(verification.globalOutageConfirmed).toBe(false);
     expect(verification.targetRetry.success).toBe(false);
     expect(verification.referenceCheck.success).toBe(true);
-    expect(checkSpy).toHaveBeenNthCalledWith(1, 'https://service.test/health', 'ready marker');
+    expect(checkSpy).toHaveBeenNthCalledWith(1, 'https://service.test/health', 'ready marker', 200);
     expect(checkSpy).toHaveBeenNthCalledWith(2, 'https://authorized-reference.test/health');
     const storedChecks = db.prepare(
       'SELECT COUNT(*) AS count FROM health_checks WHERE endpoint_id = ?'

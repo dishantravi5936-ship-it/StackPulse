@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS endpoints (
   name TEXT NOT NULL,
   group_name TEXT NOT NULL DEFAULT 'default',
   url TEXT NOT NULL,
+  expected_status INTEGER NOT NULL DEFAULT 200 CHECK (expected_status BETWEEN 100 AND 599),
   expected_content TEXT,
   gatus_key TEXT NOT NULL UNIQUE,
   public_slug TEXT UNIQUE,

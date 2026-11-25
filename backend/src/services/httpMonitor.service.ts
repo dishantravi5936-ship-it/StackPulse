@@ -31,7 +31,11 @@ class HttpMonitorService {
   private activeChecks = 0;
   private waiters: Array<() => void> = [];
 
-  async check(rawUrl: string, expectedContent?: string | null): Promise<MonitorResult> {
+  async check(
+    rawUrl: string,
+    expectedContent?: string | null,
+    expectedStatus = 200
+  ): Promise<MonitorResult> {
     await this.acquire();
     try {
       let destination: SafeDestination;
@@ -48,7 +52,7 @@ class HttpMonitorService {
         return this.failure(classification, message);
       }
 
-      return await this.request(destination, expectedContent ?? undefined);
+      return await this.request(destination, expectedContent ?? undefined, expectedStatus);
     } finally {
       this.release();
     }
@@ -68,7 +72,11 @@ class HttpMonitorService {
     else this.activeChecks -= 1;
   }
 
-  private request(destination: SafeDestination, expectedContent?: string): Promise<MonitorResult> {
+  private request(
+    destination: SafeDestination,
+    expectedContent: string | undefined,
+    expectedStatus: number
+  ): Promise<MonitorResult> {
     return new Promise((resolve) => {
       const { url, hostname, port, addresses } = destination;
       const address = addresses[0];
@@ -127,7 +135,7 @@ class HttpMonitorService {
                   ? new Date((response.socket as import('tls').TLSSocket).getPeerCertificate().valid_to).toISOString()
                   : null
                 : null;
-            const httpSuccess = !tooLarge && statusCode !== null && statusCode >= 200 && statusCode < 300;
+            const httpSuccess = !tooLarge && statusCode === expectedStatus;
             const assertionFailed = httpSuccess && expectedContent !== undefined &&
               !Buffer.concat(responseChunks).toString('utf8').includes(expectedContent);
             const success = httpSuccess && !assertionFailed;
@@ -148,7 +156,7 @@ class HttpMonitorService {
                   ? 'HTTP response did not contain the configured expected content'
                   : success
                     ? null
-                    : `HTTP ${statusCode ?? 'unknown'}`,
+                    : `Expected HTTP ${expectedStatus}, received ${statusCode ?? 'unknown'}`,
               tlsExpiresAt,
             });
           });

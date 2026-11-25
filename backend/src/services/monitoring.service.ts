@@ -99,6 +99,8 @@ class MonitoringService {
     const latest = this.latestForEndpoint(endpointId);
     const endpoint = endpointService.getById(endpointId);
     if (!endpoint) throw Object.assign(new Error('Endpoint not found'), { status: 404 });
+    const monitoringUncertain = trust.freshness === 'stale' || trust.freshness === 'engine_unavailable';
+    const publicServiceState = monitoringUncertain ? 'unknown' : trust.serviceState;
     const tls = endpoint.url.startsWith('https://')
       ? tlsService.getLatestResult(endpointId)
       : null;
@@ -106,14 +108,15 @@ class MonitoringService {
     return {
       id: endpoint.id,
       name: endpoint.name,
-      status: trust.serviceState === 'up' ? 'operational' : trust.serviceState === 'down' ? 'outage' : 'unknown',
-      serviceState: trust.serviceState,
+      status: publicServiceState === 'up' ? 'operational' : publicServiceState === 'down' ? 'outage' : 'unknown',
+      serviceState: publicServiceState,
+      lastKnownServiceState: trust.lastKnownServiceState,
       monitoringFreshness: trust.freshness,
       httpStatus: latest?.httpStatus ?? null,
       latencyMs: latest?.latencyMs ?? null,
       lastCheckedAt: trust.lastCompletedCheckAt,
       lastSuccessfulCheckAt: trust.lastSuccessfulCheckAt,
-      failureClassification: latest?.failureClassification ?? null,
+      checkIntervalSeconds: endpoint.interval_seconds,
       uptime24h: trust.observedUptimePercent,
       observedUptimePercent: trust.observedUptimePercent,
       monitoringCoveragePercent: trust.monitoringCoveragePercent,
@@ -128,12 +131,41 @@ class MonitoringService {
     };
   }
 
+  listPublicHistory(endpointId: string, since: string, limit = 2880): Array<{
+    checkedAt: string;
+    success: boolean;
+    httpStatus: number | null;
+    latencyMs: number | null;
+  }> {
+    const rows = db.prepare(`
+      SELECT checked_at AS checkedAt, success, http_status AS httpStatus, latency_ms AS latencyMs
+      FROM health_checks
+      WHERE endpoint_id = ? AND source = 'native' AND checked_at >= ?
+      ORDER BY checked_at DESC LIMIT ?
+    `).all(endpointId, since, limit) as Array<{
+      checkedAt: string;
+      success: number;
+      httpStatus: number | null;
+      latencyMs: number | null;
+    }>;
+    return rows.reverse().map((row) => ({
+      checkedAt: row.checkedAt,
+      success: row.success === 1,
+      httpStatus: row.httpStatus,
+      latencyMs: row.latencyMs,
+    }));
+  }
+
   private async runCheck(
     endpoint: NonNullable<ReturnType<typeof endpointService.getById>>,
     scheduleId: string,
     scheduledCheckId: string
   ): Promise<HealthCheckRow | null> {
-    const result = await httpMonitorService.check(endpoint.url, endpoint.expected_content);
+    const result = await httpMonitorService.check(
+      endpoint.url,
+      endpoint.expected_content,
+      endpoint.expected_status
+    );
     const tlsResult = endpoint.url.startsWith('https://')
       ? await tlsService.checkEndpoint(endpoint.url)
       : null;

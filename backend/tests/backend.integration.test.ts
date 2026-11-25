@@ -124,7 +124,7 @@ describe('MVP backend API', () => {
     checkId = data.latestCheck.id;
     expect(data.endpoint.gatus_key).toBe(`stackpulse_${endpointId.replace(/-/g, '')}`);
     expect(data.latestCheck).toMatchObject({ httpStatus: 200, success: true, source: 'native' });
-    expect(checkSpy).toHaveBeenCalledWith('http://8.8.8.8/health', 'service ready');
+    expect(checkSpy).toHaveBeenCalledWith('http://8.8.8.8/health', 'service ready', 200);
 
     const checks = await request(`/api/endpoints/${endpointId}/checks`);
     expect(checks.response.status).toBe(200);
@@ -145,9 +145,15 @@ describe('MVP backend API', () => {
 
     const publicStatus = await request(`/api/public/status/${publicSlug}`, 'GET', undefined, '');
     expect(publicStatus.response.status).toBe(200);
-    const publicEndpoint = (publicStatus.body.data as { endpoint: Record<string, unknown> }).endpoint;
+    const publicData = publicStatus.body.data as {
+      endpoint: Record<string, unknown>;
+      history: Array<Record<string, unknown>>;
+    };
+    const publicEndpoint = publicData.endpoint;
     expect(publicEndpoint).toMatchObject({ id: endpointId, name: 'Authorized Test Target', status: 'operational' });
     expect(publicEndpoint).not.toHaveProperty('url');
+    expect(publicData.history[0]).toMatchObject({ success: true, httpStatus: 200 });
+    expect(publicData.history[0]).not.toHaveProperty('failureClassification');
 
     const detail = await request(`/api/endpoints/${endpointId}`);
     expect(detail.body.data).toHaveProperty('trustPulse');
@@ -168,9 +174,11 @@ describe('MVP backend API', () => {
   test('applies supported interval changes, pause/resume, and soft deletion without erasing checks', async () => {
     const patched = await request(`/api/endpoints/${endpointId}`, 'PATCH', {
       interval_seconds: 60,
+      expected_status: 204,
     });
     expect(patched.response.status).toBe(200);
     expect((patched.body.data as { interval_seconds: number }).interval_seconds).toBe(60);
+    expect((patched.body.data as { expected_status: number }).expected_status).toBe(204);
 
     const paused = await request(`/api/endpoints/${endpointId}/pause`, 'POST', {});
     expect(paused.response.status).toBe(200);

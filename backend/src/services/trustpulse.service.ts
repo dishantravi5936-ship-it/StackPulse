@@ -45,10 +45,50 @@ export interface TrustPulseWindow {
   expectedChecks: number;
   completedChecks: number;
   successfulChecks: number;
+  failedChecks: number;
   missingChecks: number;
   excludedChecks: number;
   observedUptimePercent: number | null;
   monitoringCoveragePercent: number | null;
+}
+
+export interface CoverageResult {
+  expected: number;
+  completed: number;
+  successful: number;
+  failed: number;
+  missing: number;
+  observedUptime: number | null;
+  coverage: number | null;
+}
+
+export function calculateCoverage(
+  expected: number,
+  completed: number,
+  successful: number
+): CoverageResult {
+  if (
+    ![expected, completed, successful].every(Number.isSafeInteger) ||
+    expected < 0 ||
+    completed < 0 ||
+    successful < 0 ||
+    completed > expected ||
+    successful > completed
+  ) {
+    throw new Error('Invalid monitoring counts');
+  }
+
+  const round = (value: number): number => Math.round(value * 100) / 100;
+
+  return {
+    expected,
+    completed,
+    successful,
+    failed: completed - successful,
+    missing: expected - completed,
+    observedUptime: completed > 0 ? round((successful / completed) * 100) : null,
+    coverage: expected > 0 ? round((completed / expected) * 100) : null,
+  };
 }
 
 export interface TrustPulseSnapshot extends TrustPulseWindow {
@@ -386,18 +426,16 @@ class TrustPulseService {
 
     const completedChecks = matched.size;
     const successfulChecks = Array.from(matched.values()).filter((check) => check.success === 1).length;
+    const coverage = calculateCoverage(expectedChecks, completedChecks, successfulChecks);
     return {
-      expectedChecks,
-      completedChecks: Math.min(completedChecks, expectedChecks),
-      successfulChecks: Math.min(successfulChecks, expectedChecks),
-      missingChecks: Math.max(0, expectedChecks - completedChecks),
+      expectedChecks: coverage.expected,
+      completedChecks: coverage.completed,
+      successfulChecks: coverage.successful,
+      failedChecks: coverage.failed,
+      missingChecks: coverage.missing,
       excludedChecks,
-      observedUptimePercent: completedChecks > 0
-        ? Math.round((successfulChecks / completedChecks) * 10_000) / 100
-        : null,
-      monitoringCoveragePercent: expectedChecks > 0
-        ? Math.round((Math.min(completedChecks, expectedChecks) / expectedChecks) * 10_000) / 100
-        : null,
+      observedUptimePercent: coverage.observedUptime,
+      monitoringCoveragePercent: coverage.coverage,
     };
   }
 

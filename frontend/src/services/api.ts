@@ -1,33 +1,38 @@
-import axios from 'axios';
-
-// In development, Vite proxies /api → http://localhost:3001
-const BASE_URL = '/api';
+import axios, { AxiosError, type AxiosResponse } from 'axios';
 
 const api = axios.create({
-  baseURL: BASE_URL,
-  timeout: 10_000,
+  baseURL: '/api',
+  timeout: 12_000,
   headers: { 'Content-Type': 'application/json' },
 });
 
-// Attach JWT from localStorage if present
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('stackpulse_token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
+  const token = sessionStorage.getItem('stackpulse_token');
+  if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
 
-// Redirect to login on 401
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem('stackpulse_token');
-      window.location.href = '/login';
+  (error: AxiosError<{ error?: { message?: string } }>) => {
+    if (error.response?.status === 401 && sessionStorage.getItem('stackpulse_token')) {
+      sessionStorage.removeItem('stackpulse_token');
+      sessionStorage.removeItem('stackpulse_user');
+      window.dispatchEvent(new Event('stackpulse:unauthorized'));
     }
     return Promise.reject(error);
   }
 );
+
+export function unwrap<T>(response: AxiosResponse<{ data: T }>): T {
+  return response.data.data;
+}
+
+export function getErrorMessage(error: unknown, fallback: string): string {
+  if (axios.isAxiosError<{ error?: { message?: string } }>(error)) {
+    return error.response?.data?.error?.message ?? error.message ?? fallback;
+  }
+  return error instanceof Error ? error.message : fallback;
+}
 
 export default api;

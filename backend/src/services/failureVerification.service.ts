@@ -15,6 +15,7 @@ export type VerificationOutcome =
 interface EndpointTarget {
   id: string;
   url: string;
+  expected_status: number;
   expected_content: string | null;
   enabled: number;
 }
@@ -65,7 +66,7 @@ class FailureVerificationService {
     if (active) return active;
 
     const endpoint = db.prepare(`
-      SELECT id, url, expected_content, enabled FROM endpoints
+      SELECT id, url, expected_status, expected_content, enabled FROM endpoints
       WHERE id = ? AND deleted_at IS NULL
     `).get(endpointId) as EndpointTarget | undefined;
     if (!endpoint) throw Object.assign(new Error('Endpoint not found'), { status: 404 });
@@ -119,7 +120,11 @@ class FailureVerificationService {
   ): Promise<VerificationResult> {
     await this.acquire();
     try {
-      const target = await httpMonitorService.check(endpoint.url, endpoint.expected_content);
+      const target = await httpMonitorService.check(
+        endpoint.url,
+        endpoint.expected_content,
+        endpoint.expected_status
+      );
       const referenceUrl = process.env.TRUSTPULSE_REFERENCE_URL?.trim();
       let reference: MonitorResult | null = null;
       let outcome: VerificationOutcome;

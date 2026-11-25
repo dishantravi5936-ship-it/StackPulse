@@ -15,6 +15,7 @@ export interface EndpointRow {
   name: string;
   group_name: string;
   url: string;
+  expected_status: number;
   expected_content: string | null;
   gatus_key: string;
   public_slug: string | null;
@@ -31,6 +32,7 @@ export interface EndpointInput {
   url: string;
   interval_seconds: MonitoringInterval;
   group_name?: string;
+  expected_status?: number;
   is_public?: boolean;
   expected_content?: string | null;
 }
@@ -94,14 +96,15 @@ class EndpointService {
     db.transaction(() => {
       db.prepare(`
         INSERT INTO endpoints
-          (id, owner_id, name, group_name, url, expected_content, gatus_key, public_slug, interval_seconds, enabled, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
+          (id, owner_id, name, group_name, url, expected_status, expected_content, gatus_key, public_slug, interval_seconds, enabled, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
       `).run(
         id,
         ownerId,
         input.name.trim(),
         input.group_name?.trim() || 'default',
         input.url,
+        input.expected_status ?? 200,
         input.expected_content?.trim() || null,
         gatusKey,
         publicSlug,
@@ -124,6 +127,7 @@ class EndpointService {
     if (!existing) throw Object.assign(new Error('Endpoint not found'), { status: 404 });
 
     const url = patch.url ?? existing.url;
+    const expectedStatus = patch.expected_status ?? existing.expected_status;
     const expectedContent = patch.expected_content === undefined
       ? existing.expected_content
       : patch.expected_content?.trim() || null;
@@ -142,9 +146,9 @@ class EndpointService {
     db.transaction(() => {
       db.prepare(`
         UPDATE endpoints
-        SET name = ?, group_name = ?, url = ?, expected_content = ?, interval_seconds = ?, public_slug = ?, updated_at = ?
+        SET name = ?, group_name = ?, url = ?, expected_status = ?, expected_content = ?, interval_seconds = ?, public_slug = ?, updated_at = ?
         WHERE id = ? AND owner_id = ? AND deleted_at IS NULL
-      `).run(name, groupName, url, expectedContent, interval, publicSlug, now, id, ownerId);
+      `).run(name, groupName, url, expectedStatus, expectedContent, interval, publicSlug, now, id, ownerId);
       if (interval !== existing.interval_seconds || url !== existing.url) {
         db.prepare(
           "UPDATE endpoint_schedule_history SET ends_at = ? WHERE endpoint_id = ? AND ends_at IS NULL"

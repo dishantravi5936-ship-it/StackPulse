@@ -56,6 +56,7 @@ Lists the caller's endpoints.
 {
   "name": "Authorized test endpoint",
   "url": "https://approved.example.test/health",
+  "expected_status": 200,
   "interval_seconds": 30,
   "is_public": true
 }
@@ -63,13 +64,15 @@ Lists the caller's endpoints.
 
 `interval_seconds` must be `30`, `60`, or `120`. The optional `is_public` creates an unguessable public status slug. URL validation rejects credentials and non-HTTP(S) protocols, resolves every DNS answer, rejects non-global addresses, and pins the resolved destination address for each native request. Redirects are not followed. Endpoint creation immediately runs a native check and returns that result.
 
-The optional `expected_content` field (maximum 512 characters) makes a 2xx response successful only if its bounded response body contains the configured substring. It is checked by the native worker; no Gatus assertion support is claimed because Gatus runtime configuration remains unverified.
+`expected_status` is an optional exact HTTP status (100–599), defaulting to `200`. The native monitor treats a response with any other status as a failure.
+
+The optional `expected_content` field (maximum 512 characters) requires the response body for the expected status to contain the configured substring. The body is bounded by the native monitor's response-size limit; no Gatus assertion support is claimed because Gatus runtime configuration remains unverified.
 
 ### `GET /endpoints/:id`
 
 Returns endpoint details, last check, TLS metadata (or explicit `unavailable`), active schedule, TrustPulse metrics, IncidentLens diagnosis, and the latest failure-verification result.
 
-TrustPulse includes schedule-aware expected, completed, missing, and excluded check counts; observed uptime and monitoring coverage; freshness and engine state; last successful/completed check times; and monitoring interruptions. Uptime is `null` when no scheduled result completed. A 100% observed uptime is not evidence of uninterrupted availability. Engine unavailability or missing data never changes the last known service state or resolves an incident.
+TrustPulse includes schedule-aware expected, completed, successful, failed, missing, and excluded check counts; observed uptime and monitoring coverage; freshness and engine state; last successful/completed check times; and monitoring interruptions. Failed counts include completed failures only; missing checks remain separate. Uptime is `null` when no scheduled result completed. A 100% observed uptime is not evidence of uninterrupted availability. Engine unavailability or missing data never changes the last known service state or resolves an incident.
 
 IncidentLens includes observed evidence, a deterministic failure category, possible causes, recommended troubleshooting, and evidence limitations. It does not assert an exact root cause.
 
@@ -79,7 +82,7 @@ Returns the caller's endpoints with each endpoint's latest check, TrustPulse sna
 
 ### `PATCH /endpoints/:id`
 
-Accepts any non-empty subset of `name`, `url`, `interval_seconds`, `group_name`, and `is_public`. URL or interval changes create a new schedule-history record. Gatus keys are derived once from the immutable endpoint UUID and do not change with the endpoint display name.
+Accepts any non-empty subset of `name`, `url`, `expected_status`, `expected_content`, `interval_seconds`, `group_name`, and `is_public`. URL or interval changes create a new schedule-history record. Gatus keys are derived once from the immutable endpoint UUID and do not change with the endpoint display name.
 
 ### `DELETE /endpoints/:id`
 
@@ -113,7 +116,7 @@ Returns the caller's simulated email and webhook notification records. Incident 
 
 ### `GET /public/status/:slug`
 
-Returns public summary only for an enabled endpoint explicitly made public by an administrator. The response omits the endpoint URL, owner, and private configuration. TLS expiry is `null` with `status: "unavailable"` when it could not be inspected.
+Returns public summary only for an enabled endpoint explicitly made public by an administrator. The response omits the endpoint URL, owner, and private configuration and includes a 24-hour history containing only timestamps, success, HTTP status, and latency. It does not expose failure details or failure classifications. Stale or unavailable monitoring is reported as `unknown`; the last known state remains separately available. TLS expiry is `null` with `status: "unavailable"` when it could not be inspected.
 
 ## Monitoring and Gatus limitations
 

@@ -15,6 +15,7 @@ const router = Router();
 const endpointBody = z.object({
   name: z.string().trim().min(1).max(100),
   url: z.string().url().max(2048),
+  expected_status: z.number().int().min(100).max(599).optional(),
   expected_content: z.string().trim().min(1).max(512).nullable().optional(),
   interval_seconds: z.union([z.literal(30), z.literal(60), z.literal(120)]),
   group_name: z.string().trim().min(1).max(50).optional(),

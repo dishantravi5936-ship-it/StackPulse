@@ -36,6 +36,7 @@ export function runMigrations(): void {
 
   ensureColumn('endpoints', 'owner_id', 'TEXT REFERENCES users(id) ON DELETE SET NULL');
   ensureColumn('endpoints', 'gatus_key', 'TEXT');
+  ensureColumn('endpoints', 'expected_status', 'INTEGER NOT NULL DEFAULT 200');
   ensureColumn('endpoints', 'expected_content', 'TEXT');
   ensureColumn('endpoints', 'public_slug', 'TEXT');
   ensureColumn('endpoints', 'paused_at', 'TEXT');

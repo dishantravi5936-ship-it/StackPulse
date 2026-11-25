@@ -50,6 +50,21 @@ describe('bounded native HTTP monitoring', () => {
     expect(result).toMatchObject({ success: false, statusCode: 503, failureClassification: 'http_status' });
   });
 
+  test('matches a configured exact HTTP status instead of accepting any 2xx response', async () => {
+    responseStatus = 204;
+    responseBody = '';
+    const expected = await httpMonitor.check(`http://service.test:${port}/health`, null, 204);
+    const unexpected = await httpMonitor.check(`http://service.test:${port}/health`, null, 201);
+
+    expect(expected).toMatchObject({ success: true, statusCode: 204, failureClassification: 'none' });
+    expect(unexpected).toMatchObject({
+      success: false,
+      statusCode: 204,
+      failureClassification: 'http_status',
+      error: 'Expected HTTP 201, received 204',
+    });
+  });
+
   test('fails a 200 response when the configured expected content is absent', async () => {
     responseStatus = 200;
     responseBody = 'healthy page';
