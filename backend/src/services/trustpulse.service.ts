@@ -267,24 +267,21 @@ class TrustPulseService {
     const lookbackStart = now - WINDOWS[WINDOWS.length - 1].durationMs - 120_000;
     const schedules = db.prepare(`
       SELECT id, interval_seconds, starts_at, ends_at FROM endpoint_schedule_history
-      WHERE endpoint_id = ? AND starts_at <= ?
-        AND (ends_at IS NULL OR ends_at >= ?)
+      WHERE endpoint_id = ?
       ORDER BY starts_at
-    `).all(
-      endpointId,
-      new Date(now).toISOString(),
-      new Date(lookbackStart).toISOString()
-    ) as ScheduleRow[];
-    const recentChecks = db.prepare(`
+    `).all(endpointId) as ScheduleRow[];
+    const allRecentChecks = db.prepare(`
       SELECT id, schedule_id, scheduled_check_id, checked_at, success
       FROM health_checks
-      WHERE endpoint_id = ? AND source = 'native' AND checked_at >= ? AND checked_at <= ?
-      ORDER BY checked_at, id
-    `).all(
-      endpointId,
-      new Date(lookbackStart).toISOString(),
-      new Date(now + 30_000).toISOString()
-    ) as CheckRow[];
+      WHERE endpoint_id = ? AND source = 'native'
+      ORDER BY id
+    `).all(endpointId) as CheckRow[];
+    const recentChecks = allRecentChecks.filter((check) => {
+      const checkedAt = Date.parse(check.checked_at);
+      return Number.isFinite(checkedAt) &&
+        checkedAt >= lookbackStart &&
+        checkedAt <= now + 30_000;
+    });
     const interruptions = db.prepare(`
       SELECT started_at, ended_at FROM monitoring_interruptions
       WHERE engine = 'native' AND excluded_from_expected = 1
@@ -295,22 +292,32 @@ class TrustPulseService {
       new Date(now - WINDOWS[WINDOWS.length - 1].durationMs).toISOString()
     ) as InterruptionRange[];
     const excludedPeriods = this.mergeExclusions(interruptions, now);
-    const latest = db.prepare(`
+    const latestRows = db.prepare(`
       SELECT id, schedule_id, scheduled_check_id, checked_at, success,
              http_status, failure_classification, failure_detail, tls_expires_at
       FROM health_checks WHERE endpoint_id = ? AND source = 'native'
-      ORDER BY checked_at DESC, id DESC LIMIT 1
-    `).get(endpointId) as (CheckRow & {
+    `).all(endpointId) as Array<CheckRow & {
       http_status: number | null;
       failure_classification: string | null;
       failure_detail: string | null;
       tls_expires_at: string | null;
-    }) | undefined;
-    const lastSuccessful = db.prepare(
-      `SELECT checked_at FROM health_checks
-       WHERE endpoint_id = ? AND source = 'native' AND success = 1
-       ORDER BY checked_at DESC, id DESC LIMIT 1`
-    ).get(endpointId) as { checked_at: string } | undefined;
+    }>;
+    const latest = latestRows.reduce<(CheckRow & {
+      http_status: number | null;
+      failure_classification: string | null;
+      failure_detail: string | null;
+      tls_expires_at: string | null;
+    }) | undefined>((newest, row) => {
+      if (!newest || Date.parse(row.checked_at) > Date.parse(newest.checked_at)) return row;
+      return newest;
+    }, undefined);
+    const lastSuccessful = latestRows
+      .filter((row) => row.success === 1)
+      .reduce<{ checked_at: string } | undefined>((newest, row) =>
+        !newest || Date.parse(row.checked_at) > Date.parse(newest.checked_at)
+          ? { checked_at: row.checked_at }
+          : newest,
+      undefined);
     const latestSchedule = schedules[schedules.length - 1];
     const latestIntervalMs = latestSchedule ? latestSchedule.interval_seconds * 1000 : 120_000;
     const freshnessLimitMs = latestIntervalMs * 2 + this.toleranceMs(latestIntervalMs / 1000);

@@ -18,6 +18,8 @@ const calculateCoverage: typeof import('../src/services/trustpulse.service').cal
   trustPulseModule.calculateCoverage;
 const uptimeService = require('../src/services/uptime.service').default;
 const incidentLens = require('../src/services/incidentlens.service').default;
+const incidentService = require('../src/services/incident.service').default;
+const monitoringWorker = require('../src/workers/monitoring.worker').default;
 
 const ownerId = randomUUID();
 
@@ -112,6 +114,132 @@ describe('TrustPulse schedule-aware reliability metrics', () => {
     expect(() => calculateCoverage(1.5, 1, 1)).toThrow('Invalid monitoring counts');
   });
 
+  test('returns the required 10/10, 6/10, 8/6 and zero-completed count scenarios', () => {
+    expect(calculateCoverage(10, 10, 10)).toEqual({
+      expected: 10,
+      completed: 10,
+      successful: 10,
+      failed: 0,
+      missing: 0,
+      observedUptime: 100,
+      coverage: 100,
+    });
+    expect(calculateCoverage(10, 6, 6)).toEqual({
+      expected: 10,
+      completed: 6,
+      successful: 6,
+      failed: 0,
+      missing: 4,
+      observedUptime: 100,
+      coverage: 60,
+    });
+    expect(calculateCoverage(10, 8, 6)).toEqual({
+      expected: 10,
+      completed: 8,
+      successful: 6,
+      failed: 2,
+      missing: 2,
+      observedUptime: 75,
+      coverage: 80,
+    });
+    expect(calculateCoverage(10, 0, 0)).toEqual({
+      expected: 10,
+      completed: 0,
+      successful: 0,
+      failed: 0,
+      missing: 10,
+      observedUptime: null,
+      coverage: 0,
+    });
+  });
+
+  test('keeps an active incident unresolved while the monitoring worker is unavailable', () => {
+    const now = Date.now();
+    const start = now - 20_000;
+    const { endpointId, scheduleIds } = createEndpoint(30, [{ interval: 30, start }]);
+    const endpoint = db.prepare('SELECT owner_id, name FROM endpoints WHERE id = ?').get(endpointId) as
+      { owner_id: string; name: string };
+
+    for (let index = 0; index < 3; index += 1) {
+      const checkId = randomUUID();
+      const checkedAt = new Date(start + (index + 1) * 30_000).toISOString();
+      db.prepare(`
+        INSERT INTO health_checks
+          (id, endpoint_id, schedule_id, scheduled_check_id, http_status, checked_at,
+           success, failure_classification, source, created_at)
+        VALUES (?, ?, ?, ?, 503, ?, 0, 'http_status', 'native', ?)
+      `).run(checkId, endpointId, scheduleIds[0], `incident:${index}`, checkedAt, checkedAt);
+      incidentService.createForCheck({
+        id: checkId,
+        endpoint_id: endpointId,
+        owner_id: endpoint.owner_id,
+        endpoint_name: endpoint.name,
+        success: false,
+      });
+    }
+
+    const activeBefore = db.prepare(
+      "SELECT id, status, failure_count FROM incidents WHERE endpoint_id = ? AND status != 'resolved'"
+    ).get(endpointId) as { id: string; status: string; failure_count: number };
+    expect(activeBefore).toMatchObject({ status: 'open', failure_count: 3 });
+
+    trustPulse.recordEngineState('native', 'unavailable', 'worker_stopped', true, now);
+    const interrupted = trustPulse.getEndpointSnapshot(endpointId, now);
+    const activeDuring = db.prepare(
+      "SELECT status, failure_count FROM incidents WHERE endpoint_id = ? AND status != 'resolved'"
+    ).get(endpointId) as { status: string; failure_count: number };
+
+    expect(interrupted.serviceState).toBe('down');
+    expect(interrupted.freshness).toBe('engine_unavailable');
+    expect(activeDuring).toMatchObject({ status: 'open', failure_count: 3 });
+  });
+
+  test('worker stop and restart preserve history and restore fresh monitoring state', () => {
+    const now = Date.now();
+    const start = now - 20_000;
+    const { endpointId, scheduleIds } = createEndpoint(30, [{ interval: 30, start }]);
+    insertCheck(endpointId, scheduleIds[0], start + 1_000, true);
+
+    trustPulse.recordEngineState('native', 'available', null, true, now - 40_000);
+    monitoringWorker.stop();
+    const stopped = trustPulse.getEndpointSnapshot(endpointId, now);
+    expect(stopped.freshness).toBe('engine_unavailable');
+    expect(stopped.lastCompletedCheckAt).toBeTruthy();
+
+    trustPulse.recordEngineState('native', 'available', null, true, now);
+    const resumed = trustPulse.getEndpointSnapshot(endpointId, now);
+    expect(resumed.engineStatus).toBe('available');
+    expect(resumed.lastCompletedCheckAt).toBeTruthy();
+    expect(resumed.monitoringInterruptions.some((entry: Record<string, unknown>) => entry.active)).toBe(false);
+    monitoringWorker.stop();
+  });
+
+  test('backend restart retains health checks and incident state in the SQLite database', () => {
+    const now = Date.now();
+    const start = now - 20_000;
+    const { endpointId, scheduleIds } = createEndpoint(30, [{ interval: 30, start }]);
+    insertCheck(endpointId, scheduleIds[0], start + 1_000, false);
+
+    const incidentId = randomUUID();
+    db.prepare(`
+      INSERT INTO incidents
+        (id, endpoint_id, owner_id, title, description, severity, status, dedupe_key,
+         failure_count, created_at, updated_at)
+      VALUES (?, ?, ?, 'Persisted incident', 'Restart persistence test', 'high', 'open',
+              ?, 1, ?, ?)
+    `).run(incidentId, endpointId, ownerId, `restart:${endpointId}`, new Date(start).toISOString(), new Date(now).toISOString());
+
+    const persistedBefore = db.prepare(
+      'SELECT COUNT(*) AS count FROM health_checks WHERE endpoint_id = ?'
+    ).get(endpointId) as { count: number };
+    const incidentBefore = db.prepare(
+      'SELECT status, failure_count FROM incidents WHERE id = ?'
+    ).get(incidentId) as { status: string; failure_count: number };
+
+    expect(persistedBefore.count).toBe(1);
+    expect(incidentBefore).toEqual({ status: 'open', failure_count: 1 });
+  });
+
   test('keeps 100% observed uptime separate from 60% monitoring coverage', () => {
     const now = Date.now();
     trustPulse.recordEngineState('native', 'available', null, true, now);
@@ -148,6 +276,36 @@ describe('TrustPulse schedule-aware reliability metrics', () => {
     expect(result.expectedChecks).toBe(3);
     expect(result.completedChecks).toBe(1);
     expect(result.missingChecks).toBe(2);
+  });
+
+  test('ignores out-of-order and UTC-offset results outside their scheduled slots', () => {
+    const now = Date.parse('2026-06-01T12:03:00.000Z');
+    trustPulse.recordEngineState('native', 'available', null, true, now);
+    const start = Date.parse('2026-06-01T12:00:00.000Z');
+    const { endpointId, scheduleIds } = createEndpoint(30, [{ interval: 30, start }]);
+
+    db.prepare(`
+      INSERT INTO health_checks
+        (id, endpoint_id, schedule_id, scheduled_check_id, engine_result_id, http_status,
+         latency_ms, checked_at, success, failure_classification, failure_detail,
+         tls_expires_at, source, created_at)
+      VALUES (?, ?, ?, ?, NULL, 200, 10, ?, 1, NULL, NULL, NULL, 'native', ?)
+    `).run(
+      randomUUID(),
+      endpointId,
+      scheduleIds[0],
+      'out-of-order:utc-offset',
+      '2026-06-01T14:02:00.000+02:00',
+      '2026-06-01T12:02:00.000Z'
+    );
+    insertCheck(endpointId, scheduleIds[0], start + 31_000, true, 'duplicate:two');
+    insertCheck(endpointId, scheduleIds[0], start + 32_000, false, 'duplicate:three');
+
+    const result = trustPulse.getEndpointSnapshot(endpointId, now);
+    expect(result.completedChecks).toBe(2);
+    expect(result.successfulChecks).toBe(1);
+    expect(result.expectedChecks).toBe(6);
+    expect(result.missingChecks).toBe(4);
   });
 
   test('reconciles interval changes, paused time, and declared configuration reloads', () => {
