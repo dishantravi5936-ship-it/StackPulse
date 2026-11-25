@@ -1,0 +1,19 @@
+services:
+  # Gatus monitoring engine — read-only monitoring, Apache 2.0 license
+  # Source: https://github.com/TwiN/gatus
+  gatus:
+    image: ghcr.io/twin/gatus:stable
+    container_name: stackpulse-gatus
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./monitoring/config:/config:ro
+      - ./monitoring/data:/data
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes: {}

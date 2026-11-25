@@ -1,0 +1,61 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build outputs
+dist/
+build/
+out/
+*.tsbuildinfo
+
+# Environment files — NEVER commit these
+.env
+.env.local
+.env.*.local
+
+# Application database — runtime data, not source
+backend/data/
+monitoring/data/
+*.db
+*.db-shm
+*.db-wal
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+ehthumbs.db
+
+# IDE
+.vscode/
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+
+# Testing
+coverage/
+.jest-cache/
+
+# TypeScript build info
+*.tsbuildinfo
+
+# Misc
+.cache/
+.tmp/
+tmp/
+
+# Git Auto Commit Generator learned data
+.git-auto-commit/

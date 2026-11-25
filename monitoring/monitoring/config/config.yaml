@@ -1,0 +1,33 @@
+storage:
+  type: sqlite
+  path: /data/gatus.db
+  maximum-number-of-results: 5000
+  maximum-number-of-events: 100
+
+metrics: true
+concurrency: 3
+skip-invalid-config-update: true
+
+web:
+  port: 8080
+
+endpoints:
+  - name: example-website
+    group: stackpulse
+    url: "https://example.com"
+    interval: 30s
+    client:
+      timeout: 10s
+      ignore-redirect: true
+    conditions:
+      - "[STATUS] == 200"
+
+  - name: failing-endpoint
+    group: stackpulse
+    url: "https://httpbin.org/status/503"
+    interval: 30s
+    client:
+      timeout: 10s
+      ignore-redirect: true
+    conditions:
+      - "[STATUS] == 200"

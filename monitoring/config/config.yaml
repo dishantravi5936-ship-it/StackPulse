@@ -1,0 +1,13 @@
+web:
+  port: 8080
+
+storage:
+  type: sqlite
+  path: /data/gatus.db
+  maximum-number-of-results: 5000
+  maximum-number-of-events: 100
+  caching: true
+
+skip-invalid-config-update: true
+
+endpoints: []
