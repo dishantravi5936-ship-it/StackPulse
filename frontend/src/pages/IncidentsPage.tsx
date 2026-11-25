@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { Activity, ArrowLeft, ArrowUpRight, AlertCircle, Clock3, ShieldCheck } from 'lucide-react';
-import api, { unwrap } from '../services/api';
+import { Activity, AlertCircle, ArrowLeft, ArrowUpRight, Clock3, Loader2, ShieldCheck, Sparkles } from 'lucide-react';
+import api, { getErrorMessage, unwrap } from '../services/api';
 import { usePolling } from '../hooks/usePolling';
 import type {
   ApiEnvelope,
@@ -9,6 +9,7 @@ import type {
   EndpointWithIntelligence,
   Incident,
   IncidentDetail,
+  IncidentExplanationResult,
   Notification,
 } from '../types';
 import { formatDate, formatRelative } from '../lib/format';
@@ -53,7 +54,7 @@ function IncidentRow({
 
 export default function IncidentsPage() {
   const { id } = useParams();
-  return id ? <IncidentDetailView id={id} /> : <IncidentListView />;
+  return id ? <IncidentDetailView key={id} id={id} /> : <IncidentListView />;
 }
 
 function IncidentListView() {
@@ -128,6 +129,9 @@ function IncidentListView() {
 }
 
 function IncidentDetailView({ id }: { id: string }) {
+  const [aiExplanation, setAiExplanation] = useState<IncidentExplanationResult | null>(null);
+  const [aiExplanationError, setAiExplanationError] = useState<string | null>(null);
+  const [isExplaining, setIsExplaining] = useState(false);
   const load = useCallback(async () => {
     const detailResponse = await api.get<ApiEnvelope<IncidentDetail>>(`/incidents/${id}`);
     const detail = unwrap(detailResponse);
@@ -158,6 +162,20 @@ function IncidentDetailView({ id }: { id: string }) {
 
   const { incident } = data.detail;
   const endpoint = data.endpoint;
+  const explainWithAi = async () => {
+    setAiExplanation(null);
+    setAiExplanationError(null);
+    setIsExplaining(true);
+    try {
+      const response = await api.post<ApiEnvelope<IncidentExplanationResult>>(`/incidents/${id}/explain`, {});
+      setAiExplanation(unwrap(response));
+    } catch (requestError) {
+      setAiExplanationError(getErrorMessage(requestError, 'Unable to request an explanation. Deterministic IncidentLens guidance remains available.'));
+    } finally {
+      setIsExplaining(false);
+    }
+  };
+
   return (
     <>
       <div className="back-link-row"><Link to="/dashboard/incidents" className="back-link"><ArrowLeft size={14} /> Incident center</Link></div>
@@ -165,7 +183,15 @@ function IncidentDetailView({ id }: { id: string }) {
         eyebrow="Incident timeline"
         title={incident.title}
         description={incident.description ?? 'No additional incident description.'}
-        actions={<StatusBadge status={incident.status === 'resolved' ? 'up' : 'down'} label={incident.status} />}
+        actions={(
+          <>
+            <StatusBadge status={incident.status === 'resolved' ? 'up' : 'down'} label={incident.status} />
+            <Button variant="secondary" size="sm" onClick={explainWithAi} disabled={isExplaining}>
+              {isExplaining ? <Loader2 className="animate-spin" size={14} /> : <Sparkles size={14} />}
+              {isExplaining ? 'Explaining…' : 'Explain with AI'}
+            </Button>
+          </>
+        )}
       />
       {error && <div className="mb-4"><ErrorBanner>Refresh failed: {error}.</ErrorBanner></div>}
       <div className="incident-detail-grid">
@@ -185,6 +211,42 @@ function IncidentDetailView({ id }: { id: string }) {
               </div>
             )}
           </Card>
+          {aiExplanationError && <ErrorBanner>{aiExplanationError} Deterministic IncidentLens guidance remains available.</ErrorBanner>}
+          {aiExplanation && (
+            <div aria-live="polite">
+              <Card className="surface-pad">
+                <div className="section-heading">
+                  <div>
+                    <h2>{aiExplanation.source === 'ai' ? 'AI explanation' : 'IncidentLens fallback'}</h2>
+                    <p>{aiExplanation.source === 'ai'
+                      ? 'AI-generated suggestions are hypotheses, not verified evidence or availability decisions.'
+                      : aiExplanation.fallbackReason === 'disabled'
+                        ? 'AI is not configured; these suggestions come from deterministic IncidentLens rules.'
+                        : aiExplanation.fallbackReason === 'misconfigured'
+                          ? 'AI configuration is incomplete or a free model has not been confirmed.'
+                          : aiExplanation.fallbackReason === 'rate_limited'
+                            ? 'OmniRoute is rate-limited; deterministic IncidentLens guidance is shown.'
+                            : 'OmniRoute could not provide a valid explanation; deterministic IncidentLens guidance is shown.'}</p>
+                  </div>
+                  {aiExplanation.cached && <span className="small-copy text-muted">Cached</span>}
+                </div>
+                <div className="diagnostic-section">
+                  <h3>Possible causes</h3>
+                  {aiExplanation.explanation.possibleCauses.length
+                    ? <ul>{aiExplanation.explanation.possibleCauses.map((item) => <li key={item}>{item}</li>)}</ul>
+                    : <p className="microcopy">No additional causes suggested.</p>}
+                </div>
+                <div className="diagnostic-section">
+                  <h3>Recommended troubleshooting</h3>
+                  {aiExplanation.explanation.recommendedTroubleshootingSteps.length
+                    ? <ul>{aiExplanation.explanation.recommendedTroubleshootingSteps.map((item) => <li key={item}>{item}</li>)}</ul>
+                    : <p className="microcopy">No additional steps suggested.</p>}
+                </div>
+                {aiExplanation.explanation.evidenceLimitations.map((item) => <p className="diagnostic-limit" key={item}>{item}</p>)}
+                <p className="ai-explanation-note">Suggestions are not automatically executed. Verified monitoring evidence and deterministic IncidentLens remain authoritative.</p>
+              </Card>
+            </div>
+          )}
           <Card className="surface-pad">
             <div className="section-heading"><div><h2>Notification history</h2><p>Simulated notification records; no external delivery is implied.</p></div></div>
             {data.notifications.length === 0 ? (
@@ -226,7 +288,7 @@ function IncidentDetailView({ id }: { id: string }) {
                 <div className="info-pair"><span>Latest verification</span><strong>{endpoint.latestVerification?.outcome.replace(/_/g, ' ') ?? 'Not run'}</strong></div>
               </Card>
               <Card className="surface-pad">
-                <div className="section-heading"><div><h2>IncidentLens</h2><p>Possible causes, not a confirmed root cause.</p></div></div>
+                <div className="section-heading"><div><h2>IncidentLens</h2><p>Deterministic evidence-based guidance.</p></div></div>
                 <span className="severity-pill severity-medium">{endpoint.incidentLens.failureCategory.replace(/_/g, ' ')}</span>
                 {endpoint.incidentLens.possibleCauses.map((cause) => <p className="diagnostic-line" key={cause}>{cause}</p>)}
                 <div className="diagnostic-section"><h3>Recommended troubleshooting</h3><ul>{endpoint.incidentLens.recommendedTroubleshootingSteps.map((step) => <li key={step}>{step}</li>)}</ul></div>

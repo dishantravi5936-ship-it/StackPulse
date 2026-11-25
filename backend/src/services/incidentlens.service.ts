@@ -31,6 +31,16 @@ export interface IncidentLensEvidence {
   tlsDaysUntilExpiry: number | null;
 }
 
+export interface IncidentLensDiagnosis {
+  observedEvidence: IncidentLensEvidence;
+  failureCategory: FailureCategory;
+  possibleCauses: string[];
+  recommendedTroubleshootingSteps: string[];
+  evidenceLimitations: string[];
+  rootCause: null;
+  diagnosticConfidence: 'limited' | 'insufficient';
+}
+
 interface DiagnosticRule {
   category: FailureCategory;
   possibleCauses: string[];
@@ -92,7 +102,7 @@ class IncidentLensService {
     } | null,
     trustPulse: Pick<TrustPulseSnapshot, 'freshness' | 'monitoringCoveragePercent'>,
     tls?: { expiresAt: string | null; daysUntilExpiry: number | null } | null
-  ): Record<string, unknown> {
+  ): IncidentLensDiagnosis {
     const tlsExpiresAt = tls?.expiresAt ?? check?.tlsExpiresAt ?? null;
     const tlsDaysUntilExpiry = tls?.daysUntilExpiry ??
       (tlsExpiresAt ? Math.floor((Date.parse(tlsExpiresAt) - Date.now()) / 86_400_000) : null);
@@ -109,7 +119,7 @@ class IncidentLensService {
     });
   }
 
-  diagnose(evidence: IncidentLensEvidence): Record<string, unknown> {
+  diagnose(evidence: IncidentLensEvidence): IncidentLensDiagnosis {
     const rule = this.selectRule(evidence);
     const evidenceLimitations = [
       'IncidentLens uses deterministic rules over monitoring evidence; it does not inspect application or server logs.',

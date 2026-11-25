@@ -21,6 +21,7 @@ docs/       Architecture decisions, API references, runbooks
 | `trustpulse.service.ts` | Schedule-aware observed uptime, monitoring coverage, freshness, engine health, and interruption history |
 | `uptime.service.ts` | Computes uptime from TrustPulse schedule-matched StackPulse checks; Gatus history is not authoritative |
 | `incidentlens.service.ts` | Deterministic evidence-based failure diagnoses; never asserts an exact root cause |
+| `incidentExplanation.service.ts` | Optional, sanitized local-OmniRoute suggestions; IncidentLens remains authoritative |
 | `failureVerification.service.ts` | Bounded operator-triggered retry/reference checks; verification never counts as a scheduled result |
 | `tls.service.ts` | Native Node.js tls.connect() checks for cert expiry, issuer, CN |
 | `auth.service.ts` | JWT sign/verify + bcrypt password hashing |
