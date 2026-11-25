@@ -130,7 +130,6 @@ The current schema and compatibility migrations are defined in `backend/src/data
 - Email/Slack/webhook notifications (requires SMTP or Slack token)
 - Multi-user / org support
 - Public subdomain per status page
-- OmniRoute integration (once reachable)
 - Ollama-powered incident RCA suggestions
 
 ---

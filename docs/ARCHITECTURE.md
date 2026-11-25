@@ -76,7 +76,6 @@ StackPulse is a developer-first uptime monitoring and public status page platfor
 - **TrustPulse:** Matches checks to persisted interval schedules with bounded timing tolerance; reports freshness, observed uptime, coverage, missing slots, and engine interruptions as distinct signals. Missing results are not failures or successes.
 - **Failure verification:** A rate-limited, administrator-triggered retry may compare against an operator-authorized reference URL. These extra probes are persisted separately and excluded from scheduled uptime/coverage.
 - **IncidentLens:** Deterministic diagnosis maps observed status/network/TLS/assertion evidence to possible causes and safe troubleshooting steps. It does not claim exact root causes or global outage confirmation.
-- **Optional AI incident explanation:** An explicit user action can request short supplementary hypotheses from a configured local OmniRoute OpenAI-compatible endpoint. It receives only sanitized, allowlisted evidence and never participates in monitoring, availability, incident state, or automatic remediation. It is disabled until a full endpoint URL, model, and explicit free-model confirmation are configured; deterministic IncidentLens remains the fallback.
 - **Incidents:** Three consecutive failed checks open one incident; recovery checks resolve it; missing data never resolves it
 - **Notifications:** Simulated email/webhook records are deduplicated and require no external delivery
 - **TLS:** Bounded native TLS inspection uses the same destination validation and reports missing metadata as unavailable
@@ -186,5 +185,4 @@ Use the reproducible Windows PowerShell procedure in [README.md](../README.md). 
 2. Gatus startup, API shape, reload, and history persistence remain unverified in Docker; see [GATUS_VALIDATION.md](./GATUS_VALIDATION.md)
 3. Gatus history is too shallow for 90 days at the configured retention; StackPulse SQLite is authoritative
 4. Simulated email/webhook records are not externally delivered
-5. OmniRoute at `localhost:20128` integration remains unverified
 

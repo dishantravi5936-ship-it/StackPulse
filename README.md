@@ -79,8 +79,8 @@ Dynamic Gatus configuration is disabled by default. Do not enable it as a produc
 - Three consecutive scheduled failures open one incident. A successful scheduled check resolves it; missing results do not.
 - Email and webhook notifications are simulated records, not external deliveries.
 - TLS expiry/issuer/CN come from the bounded native TLS inspector. Unavailable metadata is represented as unavailable.
-- Optional AI explanations are disabled unless explicitly configured against a verified local OmniRoute endpoint and free model. AI is not used in availability or incident decisions.
-- No live authorized external monitoring target, live OmniRoute endpoint, or live Gatus engine was available in the audit. Do not present test fixtures as production monitoring evidence.
+- OmniRoute and LLM incident explanations are removed from Phase 1 scope and runtime dependencies.
+- No live authorized external monitoring target or live Gatus engine was available in the audit. Do not present test fixtures as production monitoring evidence.
 
 ## Checks
 

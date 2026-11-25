@@ -47,7 +47,6 @@ The backend was launched on an isolated temporary SQLite file, then stopped and 
 - Integration tests cover administrator bootstrap, login, ownership isolation, endpoint create/edit/pause/resume/archive, schedule intervals, public response URL redaction, check deduplication, incident threshold/recovery, notification record counts, and AI sanitization/fallback/cache/rate-limit/timeout behavior.
 - Incident tests verify one active incident after repeated failures, an incremented failure count, two simulated notification channels on creation, and two more on recovery. Checks are inserted deterministically into the test database; this does not prove a live scheduled outage cycle.
 - A temporary self-signed HTTPS fixture verified that the TLS helper extracts expiration, issuer, and common name. Its certificate was correctly reported as not trusted (`valid: false`); this does not validate a real public certificate chain or the full persisted API path.
-- AI integration tests use a local fake OpenAI-compatible test server. They do not prove compatibility with the actual OmniRoute installation or a genuinely free model.
 
 ## Requirement disposition
 
@@ -67,14 +66,12 @@ The backend was launched on an isolated temporary SQLite file, then stopped and 
 - The 24-hour history/chart components build and consume persisted result APIs, but no populated chart with real authorized endpoint history was available.
 - The backend worker starts independently of the browser and the dashboard identifies it as the native source. A sustained real endpoint check sequence while the browser was closed was not observed.
 - SSRF controls were tested with local private-address rejection and injected DNS results. This does not constitute a network-level egress or live DNS-rebinding assessment.
-- The optional AI path passed mocked enabled/disabled tests. The live OmniRoute endpoint contract/model was not verified.
 
 **Not verified**
 
 - Actual Gatus startup/version/image digest, live API response schema, hot reload, add/edit/delete propagation, history persistence across configuration changes/restarts, or Gatus interruption/recovery. The Docker Engine was unavailable; no container was stopped.
 - Continuous monitoring, real failure creation/recovery, and real notification timeline against an authorized service under a sustained live schedule.
 - Real external email/webhook delivery; the feature intentionally writes simulated records only.
-- Actual OmniRoute OpenAI-compatible API route, model identity/free status, or live AI response.
 - Production deployment, TLS termination for the StackPulse web/API, OS/container egress filtering, and scale/load behavior.
 
 ## Audit changes

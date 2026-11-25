@@ -108,12 +108,6 @@ Set `TRUSTPULSE_REFERENCE_URL` in the backend environment only to a destination 
 
 Return the caller's incidents and, for detail, a chronological event timeline. Three consecutive failed scheduled checks open one incident. Further failures update that incident; a successful scheduled check resolves it. Missing data does not resolve incidents.
 
-### `POST /incidents/:id/explain`
-
-Returns an optional incident explanation for the authenticated incident owner and is limited to five requests per minute. When OmniRoute is not configured or unavailable, the response uses deterministic IncidentLens guidance and identifies the fallback reason. Only bounded incident enums and sanitized monitoring fields are sent to the configured local OpenAI-compatible chat-completions URL; endpoint names, URLs, response bodies, failure details, tokens, and secrets are excluded. AI suggestions are unverified, are never used in monitoring or availability decisions, and are not executed. Successful explanations are cached in memory for ten minutes.
-
-AI is disabled unless `OMNIROUTE_CHAT_COMPLETIONS_URL`, `OMNIROUTE_MODEL`, and `OMNIROUTE_FREE_MODEL_CONFIRMED=true` are configured. The URL must be the full local URL verified in OmniRoute; no route or model is selected by default. Confirm the selected model is free before enabling it. `OMNIROUTE_API_KEY` is optional and is sent only in the authorization header to the local OmniRoute process. `OMNIROUTE_TIMEOUT_MS` is bounded from 250 to 15,000 milliseconds. The local OmniRoute process was unavailable during implementation, so its live OpenAI-compatible contract and model availability remain unverified.
-
 ### `GET /notifications`
 
 Returns the caller's simulated email and webhook notification records. Incident creation and recovery each produce at most one record per channel. No external delivery is attempted.

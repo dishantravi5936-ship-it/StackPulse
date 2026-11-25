@@ -34,12 +34,6 @@ The security-review subagent reported no vulnerabilities in the reviewed branch 
 - A TLS helper test extracted metadata from a controlled self-signed certificate; it was correctly marked untrusted. A valid public certificate chain and its full persisted API representation remain unverified.
 - Missing results are represented separately from failures and do not resolve incidents, but monitoring coverage cannot prove that a successfully completed request is representative of every user or network.
 
-### Optional AI
-
-- AI is disabled unless an exact local OmniRoute URL, model, and explicit free-model confirmation are configured. The actual OmniRoute listener was unavailable during the audit; no endpoint path, model, or API key was inferred.
-- Automated AI tests use a local fake provider and verify sanitation, bounded output, caching, rate-limit handling, timeout fallback, and disabled fallback. They do not certify the actual OmniRoute contract or model safety.
-- AI suggestions remain unverified and are never used for health, incident transitions, or automatic repairs.
-
 ### Persistence, rate limiting, and operations
 
 - SQLite persistence was confirmed across an isolated API restart. Production backup/restore, filesystem permissions, corruption recovery against a real application database, and concurrent multi-process access were not tested.
@@ -51,5 +45,5 @@ The security-review subagent reported no vulnerabilities in the reviewed branch 
 1. Keep `HOST=127.0.0.1` for local development.
 2. Keep Gatus dynamic configuration disabled.
 3. Use only administrator-approved, authorized endpoints; do not make endpoint creation public.
-4. Do not claim Gatus reload/history behavior, live OmniRoute compatibility, external notification delivery, or real 24-hour availability based on the current audit.
+4. Do not claim Gatus reload/history behavior, external notification delivery, or real 24-hour availability based on the current audit.
 5. Before internet deployment, add and verify network egress controls, TLS termination, backup/restore, and a real authorized staging endpoint test plan.

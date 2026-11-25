@@ -15,9 +15,8 @@
 - Deterministic IncidentLens evidence classification, possible causes, troubleshooting guidance, and limitations; no automatic repairs or asserted exact root cause.
 - Incident lifecycle/timeline rules, simulated email/webhook records, and deduplication.
 - Public status response shaping, React/Vite dashboard and endpoint/incident/status pages, polling behavior, and status/freshness presentation.
-- Optional local OmniRoute explanation adapter with input sanitization, output bounds, timeout, cache, rate-limit handling, and deterministic fallback. It does not participate in availability decisions.
 - Optional Gatus configuration serialization/reconciliation wrapper, including atomic update/rollback logic. Runtime Gatus behavior remains unverified.
 
 ## What the audit established
 
-Automated tests and isolated runtime checks verify many application-level behaviors. They do not establish Gatus runtime compatibility, real external service monitoring, live OmniRoute compatibility, external notification delivery, or a full production deployment. See [TEST_RESULTS.md](./TEST_RESULTS.md) and [SECURITY_LIMITATIONS.md](./SECURITY_LIMITATIONS.md).
+Automated tests and isolated runtime checks verify many application-level behaviors. They do not establish Gatus runtime compatibility, real external service monitoring, external notification delivery, or a full production deployment. See [TEST_RESULTS.md](./TEST_RESULTS.md) and [SECURITY_LIMITATIONS.md](./SECURITY_LIMITATIONS.md).

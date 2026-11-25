@@ -129,17 +129,6 @@ export interface IncidentDetail {
   events: IncidentEvent[];
 }
 
-export interface IncidentExplanationResult {
-  source: 'ai' | 'incidentlens';
-  explanation: {
-    possibleCauses: string[];
-    evidenceLimitations: string[];
-    recommendedTroubleshootingSteps: string[];
-  };
-  fallbackReason?: 'disabled' | 'misconfigured' | 'unavailable' | 'rate_limited' | 'invalid_response';
-  cached: boolean;
-}
-
 export interface Notification {
   id: string;
   incident_id: string | null;

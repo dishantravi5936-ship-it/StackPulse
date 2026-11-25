@@ -39,7 +39,7 @@
 1. Open the endpoint's public status link in a logged-out tab.
 2. Show that its URL and private failure details are absent, and that status, last update, observed uptime, coverage, and 24-hour persisted history are separate.
 3. Close the public tab while leaving the backend terminal open; explain that monitoring runs in the backend process, not in the browser.
-4. Close with the limitations: Gatus and OmniRoute were not live-validated; AI is optional; simulated notifications are not delivery; a high observed uptime with low coverage is not proof of uninterrupted availability.
+4. Close with the limitations: Gatus was not live-validated; AI is removed from runtime scope; simulated notifications are not delivery; a high observed uptime with low coverage is not proof of uninterrupted availability.
 
 ## Evidence discipline
 
