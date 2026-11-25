@@ -20,10 +20,15 @@ describe('bounded native HTTP monitoring', () => {
   let port: number;
   let responseStatus = 200;
   let responseBody = 'service is healthy';
+  let requestCount = 0;
 
   beforeAll(async () => {
-    server = http.createServer((_request, response) => {
-      response.statusCode = responseStatus;
+    server = http.createServer((request, response) => {
+      requestCount += 1;
+      response.statusCode = request.url === '/redirected' ? 200 : responseStatus;
+      if (request.url === '/redirect') {
+        response.setHeader('Location', `http://service.test:${port}/redirected`);
+      }
       response.end(responseBody);
     });
     await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
@@ -76,7 +81,22 @@ describe('bounded native HTTP monitoring', () => {
     });
   });
 
-  test('classifies a refused connection without following redirects', async () => {
+  test('does not follow an HTTP redirect', async () => {
+    responseStatus = 302;
+    responseBody = '';
+    requestCount = 0;
+
+    const result = await httpMonitor.check(`http://service.test:${port}/redirect`);
+
+    expect(result).toMatchObject({
+      success: false,
+      statusCode: 302,
+      failureClassification: 'http_status',
+    });
+    expect(requestCount).toBe(1);
+  });
+
+  test('classifies a refused connection', async () => {
     const closedServer = net.createServer();
     await new Promise<void>((resolve) => closedServer.listen(0, '127.0.0.1', resolve));
     const address = closedServer.address();

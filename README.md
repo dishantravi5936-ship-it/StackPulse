@@ -1,101 +1,113 @@
 # StackPulse
 
-> **Developer-first uptime monitoring & public status page — AVISHKAR'26**
+Developer-first uptime monitoring and public status pages for AVISHKAR'26.
 
-Built with React, TypeScript, Node.js, SQLite, and [Gatus](https://github.com/TwiN/gatus) (Apache 2.0).
+StackPulse uses a React/Vite frontend, an Express/TypeScript API, SQLite, and an authoritative native Node.js monitor. Gatus is an optional internal component; its runtime integration is not validated and it is not required for local development.
 
----
+## Windows quick start
 
-## Stack
+### Requirements
 
-| Layer | Technology |
-|---|---|
-| Frontend | React 18 + Vite + TypeScript + Tailwind CSS + shadcn/ui + Recharts |
-| Backend | Node.js + Express + TypeScript + better-sqlite3 + JWT + Zod + Winston |
-| Monitoring | Native Node.js checks; optional Gatus (TwiN/gatus, Apache 2.0) — read-only engine |
-| Database | SQLite — single file, zero config |
+- Node.js 22 or later and npm. The audit environment used Node.js 24.15.0 and npm 11.12.1.
+- Docker Desktop only if you choose to try the optional Gatus integration.
+- PowerShell.
 
----
+### 1. Configure secrets
 
-## Quick Start
+From the repository root:
 
-### 1. Prerequisites
-- Node.js ≥ 18
-- Docker Desktop (for Gatus)
-
-### 2. Configure environment
 ```powershell
-copy backend\.env.example backend\.env
-# Set JWT_SECRET and ADMIN_BOOTSTRAP_TOKEN to unique random values of at least 32 characters
+if (-not (Test-Path 'backend\.env')) {
+  Copy-Item 'backend\.env.example' 'backend\.env'
+}
+notepad 'backend\.env'
 ```
 
-### 3. Start Gatus (optional; integration remains unvalidated)
+Set `JWT_SECRET` and a temporary `ADMIN_BOOTSTRAP_TOKEN` to different, unique random values of at least 32 characters. Generate values locally with:
+
 ```powershell
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+```
+
+Do not overwrite an existing `backend\.env` blindly or commit it. The API binds to `127.0.0.1` by default. Keep the bootstrap token only until the first administrator account has been created.
+
+### 2. Start the backend
+
+In a PowerShell terminal:
+
+```powershell
+Set-Location E:\StackPulse\backend
+npm ci
+npm run dev
+```
+
+The backend API is at `http://127.0.0.1:3001`; health is at `http://127.0.0.1:3001/api/health`. Keep this process running while monitoring. Closing the browser does not stop the backend worker; closing the backend terminal does.
+
+### 3. Start the frontend
+
+In a second PowerShell terminal:
+
+```powershell
+Set-Location E:\StackPulse\frontend
+npm ci
+npm run dev
+```
+
+Open `http://localhost:5173`. Register the first account at `/register` and enter the bootstrap token; that account becomes the administrator. Remove `ADMIN_BOOTSTRAP_TOKEN` from `backend\.env` and restart the backend after registration. No default account or monitoring history is seeded.
+
+### 4. Add an authorized endpoint
+
+Only add services you own or are explicitly authorized to monitor. Endpoint mutations require an administrator. The native worker makes real requests; private/loopback destinations and redirects are rejected/not followed. Do not use a third-party public URL as a test target without authorization.
+
+The frontend is served from `/`, the public aggregate status page is `/status`, and approved endpoint pages are linked from that page. Public status responses intentionally omit endpoint URLs and private diagnostic details.
+
+## Optional Gatus
+
+Gatus is not required for the native monitor or local demo. Docker Engine was unavailable during validation, so Gatus startup, live API shape, reload, history persistence, and interruption recovery remain unverified. If Docker Desktop is running and you intentionally want to try it:
+
+```powershell
+Set-Location E:\StackPulse
 docker compose up -d gatus
 ```
 
-### 4. Install & run backend
+Dynamic Gatus configuration is disabled by default. Do not enable it as a production monitoring path until its egress restrictions and runtime behavior have been independently verified. See [docs/GATUS_VALIDATION.md](docs/GATUS_VALIDATION.md).
+
+## Monitoring behavior and limitations
+
+- Scheduled intervals are 30, 60, or 120 seconds.
+- Observed uptime is calculated from completed scheduled checks only. Monitoring coverage is reported separately; missing checks are unknown, not successful.
+- Three consecutive scheduled failures open one incident. A successful scheduled check resolves it; missing results do not.
+- Email and webhook notifications are simulated records, not external deliveries.
+- TLS expiry/issuer/CN come from the bounded native TLS inspector. Unavailable metadata is represented as unavailable.
+- Optional AI explanations are disabled unless explicitly configured against a verified local OmniRoute endpoint and free model. AI is not used in availability or incident decisions.
+- No live authorized external monitoring target, live OmniRoute endpoint, or live Gatus engine was available in the audit. Do not present test fixtures as production monitoring evidence.
+
+## Checks
+
+From the repository root:
+
 ```powershell
-cd backend
-npm install
-npm run dev
-```
-Backend → http://localhost:3001  
-Health check → http://localhost:3001/api/health
+Set-Location E:\StackPulse\backend
+npm test
+npm run build
 
-No default credentials are created. Register the first administrator using the bootstrap token configured in `backend\.env`:
-
-```powershell
-Invoke-RestMethod -Method Post -Uri http://localhost:3001/api/auth/register `
-  -ContentType 'application/json' `
-  -Body '{"email":"you@example.test","password":"<use-a-unique-12-character-or-longer-password>","bootstrapToken":"<ADMIN_BOOTSTRAP_TOKEN>"}'
+Set-Location E:\StackPulse\frontend
+npm run build
 ```
 
-Remove `ADMIN_BOOTSTRAP_TOKEN` from the backend environment after first registration. The first account is an administrator; subsequent registrations have the regular user role. See [docs/BACKEND_API.md](docs/BACKEND_API.md) for all backend routes and authorization behavior.
+At audit time the backend lint script could not find ESLint, and the frontend ESLint installation had no configuration file; lint results are therefore unavailable, not passing. See [docs/TEST_RESULTS.md](docs/TEST_RESULTS.md).
 
-### 5. Install & run frontend
-```powershell
-cd frontend
-npm install
-npm run dev
-```
-Frontend → http://localhost:5173  
-Status page → http://localhost:5173/status  
-Admin login → http://localhost:5173/login
+## Project documentation
 
----
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+- [docs/BACKEND_API.md](docs/BACKEND_API.md)
+- [docs/GATUS_VALIDATION.md](docs/GATUS_VALIDATION.md)
+- [docs/TEST_RESULTS.md](docs/TEST_RESULTS.md)
+- [docs/SECURITY_LIMITATIONS.md](docs/SECURITY_LIMITATIONS.md)
+- [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md)
+- [docs/ORIGINAL_CONTRIBUTIONS.md](docs/ORIGINAL_CONTRIBUTIONS.md)
+- [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)
 
-## Architecture
+## Licensing
 
-See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
-
-## Gatus Integration Notes
-
-See [docs/GATUS_VALIDATION.md](docs/GATUS_VALIDATION.md) — includes what was tested, what failed, source-derived (not live-verified) API fields, and remaining validation gates.
-
-## Implementation Plan
-
-See [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md)
-
----
-
-## Project Structure
-
-```
-StackPulse/
-├── frontend/        React + Vite + Tailwind
-├── backend/         Express + SQLite API
-├── monitoring/
-│   ├── config/      Gatus config.yaml
-│   └── data/        Gatus SQLite storage (gitignored)
-├── docs/            Architecture + validation docs
-├── AGENTS.md        Dev conventions & AI guidance
-└── docker-compose.yml
-```
-
----
-
-## License
-
-StackPulse application code — MIT  
-Gatus (TwiN/gatus) — Apache License 2.0 — used as internal monitoring engine
+The repository does not currently contain a root `LICENSE` file, so this README does not claim that StackPulse application code is MIT-licensed. Gatus is licensed under Apache License 2.0; see [NOTICE](NOTICE) and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

@@ -109,6 +109,9 @@ StackPulse is a developer-first uptime monitoring and public status page platfor
 - Public routes: `/api/health`, opted-in `/api/public/status/:slug`
 - Authentication endpoints have rate limits; there is no seeded default password
 
+### Network Binding
+- The backend binds to `127.0.0.1` by default. Set `HOST` explicitly only when deploying behind suitable firewall and TLS termination controls; a wildcard bind can expose the API to the network.
+
 ### Endpoint URL Validation
 - Only `http://` and `https://` are accepted.
 - Embedded credentials, local/non-canonical hostnames, blocked ports, and non-global IPv4/IPv6 destinations are rejected. Every DNS answer is checked at creation and again at request time.
@@ -159,20 +162,7 @@ POST /api/endpoints  (administrator-authenticated payload)
 
 ## Deployment (Development)
 
-```bash
-# 1. Start Docker Desktop manually
-# 2. Start Gatus
-docker run -d -p 8080:8080 \
-  -v ./monitoring/config:/config \
-  -v ./monitoring/data:/data \
-  ghcr.io/twin/gatus:stable
-
-# 3. Start backend
-cd backend && npm run dev
-
-# 4. Start frontend
-cd frontend && npm run dev
-```
+Use the reproducible Windows PowerShell procedure in [README.md](../README.md). Gatus is optional and is not required for native monitoring. Its runtime integration remains unverified.
 
 ---
 

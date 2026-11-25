@@ -11,6 +11,7 @@ import configSyncWorker from './workers/config-sync.worker';
 import tlsWorker from './workers/tls.worker';
 
 const PORT = Number.parseInt(process.env.PORT || '3001', 10);
+const HOST = process.env.HOST || '127.0.0.1';
 
 async function bootstrap(): Promise<void> {
   authService.assertConfiguration();
@@ -20,9 +21,10 @@ async function bootstrap(): Promise<void> {
   configSyncWorker.start();
   tlsWorker.start();
 
-  const server = app.listen(PORT, () => {
+  const server = app.listen(PORT, HOST, () => {
     logger.info('StackPulse backend started', {
       port: PORT,
+      host: HOST,
       environment: process.env.NODE_ENV || 'development',
       gatusUrl: process.env.GATUS_URL || 'http://localhost:8080',
     });
