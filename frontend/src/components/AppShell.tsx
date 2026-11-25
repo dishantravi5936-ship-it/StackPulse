@@ -4,7 +4,7 @@ import {
   Activity,
   Bell,
   ChevronLeft,
-  CircleAlert,
+  AlertCircle,
   Command,
   ExternalLink,
   LayoutDashboard,
@@ -21,7 +21,7 @@ import { IconButton } from './ui';
 const navigation = [
   { to: '/dashboard', label: 'Overview', icon: LayoutDashboard, end: true },
   { to: '/dashboard/endpoints', label: 'Endpoints', icon: MonitorCheck },
-  { to: '/dashboard/incidents', label: 'Incidents', icon: CircleAlert },
+  { to: '/dashboard/incidents', label: 'Incidents', icon: AlertCircle },
   { to: '/dashboard/notifications', label: 'Notifications', icon: Bell },
 ];
 
@@ -64,7 +64,6 @@ export default function AppShell() {
           >
             <Icon size={17} strokeWidth={1.8} />
             <span>{label}</span>
-            {label === 'Incidents' && <span className="nav-count" aria-label="Active incidents"> </span>}
           </NavLink>
         ))}
       </nav>

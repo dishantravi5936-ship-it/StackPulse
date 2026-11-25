@@ -3,13 +3,15 @@ import {
   ArrowRight,
   Activity,
   Check,
-  CircleAlert,
+  AlertCircle,
   Gauge,
+  Moon,
   ShieldCheck,
+  Sun,
   Waypoints,
 } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
-import { Button, IconButton } from '../components/ui';
+import { IconButton } from '../components/ui';
 
 function Brand() {
   return (
@@ -31,7 +33,7 @@ export default function HomePage() {
           <Link className="button button-ghost button-sm" to="/login">Sign in</Link>
           <Link className="button button-primary button-sm" to="/register">Get started <ArrowRight size={14} /></Link>
           <IconButton label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`} onClick={toggleTheme}>
-            {theme === 'dark' ? <span aria-hidden="true">☼</span> : <span aria-hidden="true">◐</span>}
+            {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
           </IconButton>
         </div>
       </header>
@@ -72,7 +74,7 @@ export default function HomePage() {
             <p>See successful observations and monitoring coverage independently. Gaps stay visible instead of becoming accidental green.</p>
           </article>
           <article className="surface feature-card">
-            <span className="feature-icon"><CircleAlert size={17} /></span>
+            <span className="feature-icon"><AlertCircle size={17} /></span>
             <h3>Useful incident context</h3>
             <p>Track deterministic incident timelines and inspect evidence-based troubleshooting suggestions without invented root causes.</p>
           </article>

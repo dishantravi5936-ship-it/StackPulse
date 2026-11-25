@@ -94,7 +94,7 @@ Pause closes the active schedule; resume opens a new schedule-history row.
 
 ### `GET /endpoints/:id/checks?limit=100`
 
-Returns up to 500 persisted health checks, newest first. Each result includes a scheduled-check identifier, status/latency when available, timestamp, success, failure classification, TLS expiry when available, and source. Unique scheduled-check IDs prevent repeated scheduler/API attempts from duplicating a result.
+Returns up to 3,000 persisted health checks, newest first. Each result includes a scheduled-check identifier, status/latency when available, timestamp, success, failure classification, TLS expiry when available, and source. Unique scheduled-check IDs prevent repeated scheduler/API attempts from duplicating a result.
 
 ### `POST /endpoints/:id/verify`
 

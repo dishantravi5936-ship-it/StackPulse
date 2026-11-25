@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import {
   Activity,
   ArrowUpRight,
-  CircleAlert,
+  AlertCircle,
   Clock3,
   Gauge,
   RefreshCw,
@@ -76,7 +76,7 @@ export default function DashboardPage() {
       <Card className="hero-status-card">
         <div className="hero-status-main">
           <span className={`hero-status-icon ${overall === 'failure' || overall === 'unknown' ? 'is-alert' : ''}`}>
-            {overall === 'failure' ? <CircleAlert size={19} /> : overall === 'empty' ? <Activity size={19} /> : overall === 'unknown' ? <Clock3 size={19} /> : <ShieldCheck size={19} />}
+              {overall === 'failure' ? <AlertCircle size={19} /> : overall === 'empty' ? <Activity size={19} /> : overall === 'unknown' ? <Clock3 size={19} /> : <ShieldCheck size={19} />}
           </span>
           <div>
             <h2>
@@ -97,7 +97,7 @@ export default function DashboardPage() {
 
       <div className="grid metrics-grid">
         <MetricCard label="Monitored endpoints" value={String(endpoints.length)} detail={`${up} operational · ${unknown} unknown`} icon={<Signal />} />
-        <MetricCard label="Active incidents" value={String(activeIncidents.length)} detail={activeIncidents.length ? 'Scheduled failures recorded' : 'No active incident records'} icon={<CircleAlert />} accent={activeIncidents.length > 0} />
+        <MetricCard label="Active incidents" value={String(activeIncidents.length)} detail={activeIncidents.length ? 'Scheduled failures recorded' : 'No active incident records'} icon={<AlertCircle />} accent={activeIncidents.length > 0} />
         <MetricCard label="Observed uptime · 24h" value={formatPercent(uptime)} detail={`${completed} completed of ${expected} expected checks`} icon={<Gauge />} />
         <MetricCard label="Monitoring coverage · 24h" value={formatPercent(coverage)} detail={`${Math.max(0, expected - completed)} scheduled checks missing`} icon={<Timer />} />
       </div>

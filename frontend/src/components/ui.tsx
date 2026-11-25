@@ -3,10 +3,10 @@ import * as Dialog from '@radix-ui/react-dialog';
 import {
   AlertCircle,
   CheckCircle2,
-  CircleHelp,
+  HelpCircle,
   Clock3,
   Info,
-  LoaderCircle,
+  Loader2,
   PauseCircle,
   X,
 } from 'lucide-react';
@@ -26,7 +26,7 @@ function ToneIcon({ tone }: { tone: keyof typeof toneStyles }) {
   if (tone === 'red') return <AlertCircle aria-hidden="true" />;
   if (tone === 'amber') return <Clock3 aria-hidden="true" />;
   if (tone === 'neutral') return <PauseCircle aria-hidden="true" />;
-  return <CircleHelp aria-hidden="true" />;
+  return <HelpCircle aria-hidden="true" />;
 }
 
 export function StatusBadge({
@@ -156,7 +156,7 @@ export function InfoBanner({ children }: { children: ReactNode }) {
 export function LoadingBlock({ label = 'Loading live monitoring data…' }: { label?: string }) {
   return (
     <div className="loading-block" role="status">
-      <LoaderCircle className="spin" size={18} aria-hidden="true" />
+      <Loader2 className="spin" size={18} aria-hidden="true" />
       <span>{label}</span>
     </div>
   );
@@ -175,7 +175,7 @@ export function EmptyState({
 }) {
   return (
     <div className="empty-state">
-      <span className="empty-icon">{icon ?? <CircleHelp size={22} />}</span>
+      <span className="empty-icon">{icon ?? <HelpCircle size={22} />}</span>
       <h3>{title}</h3>
       <p>{description}</p>
       {action}

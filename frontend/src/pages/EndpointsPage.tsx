@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import {
   Activity,
   Check,
-  Copy,
   ExternalLink,
   MoreHorizontal,
   Pause,
@@ -17,7 +16,7 @@ import api, { getErrorMessage, unwrap } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { usePolling } from '../hooks/usePolling';
 import type { ApiEnvelope, Endpoint, EndpointWithIntelligence } from '../types';
-import { formatLatency, formatPercent, formatRelative, serviceLabel } from '../lib/format';
+import { formatLatency, formatPercent, formatRelative } from '../lib/format';
 import { EndpointForm, type EndpointPayload } from '../components/EndpointForm';
 import { Button, Card, EmptyState, ErrorBanner, IconButton, LoadingBlock, Modal, PageHeader, StatusBadge } from '../components/ui';
 

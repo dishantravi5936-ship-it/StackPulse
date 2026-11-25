@@ -5,7 +5,6 @@ import {
   ArrowLeft,
   ArrowUpRight,
   BadgeCheck,
-  Clock3,
   Copy,
   ExternalLink,
   LockKeyhole,
@@ -29,13 +28,7 @@ import type {
 import { formatDate, formatLatency, formatPercent, formatRelative } from '../lib/format';
 import { EndpointForm, type EndpointPayload } from '../components/EndpointForm';
 import { LatencyChart, PublicHistoryStrip } from '../components/charts';
-import { Button, Card, EmptyState, ErrorBanner, IconButton, InfoBanner, LoadingBlock, Modal, PageHeader, StatusBadge } from '../components/ui';
-
-interface EndpointPageData {
-  detail: EndpointDetail;
-  checks: HealthCheck[];
-  incidents: Incident[];
-}
+import { Button, Card, ErrorBanner, InfoBanner, LoadingBlock, Modal, PageHeader, StatusBadge } from '../components/ui';
 
 export default function EndpointDetailPage() {
   const { id = '' } = useParams();
@@ -45,7 +38,7 @@ export default function EndpointDetailPage() {
   const load = useCallback(async () => {
     const [detailResponse, checksResponse, incidentResponse] = await Promise.all([
       api.get<ApiEnvelope<EndpointDetail>>(`/endpoints/${id}`),
-      api.get<ApiEnvelope<HealthCheck[]>>(`/endpoints/${id}/checks?limit=500`),
+      api.get<ApiEnvelope<HealthCheck[]>>(`/endpoints/${id}/checks?limit=2880`),
       api.get<ApiEnvelope<Incident[]>>('/incidents'),
     ]);
     return {
@@ -142,7 +135,6 @@ export default function EndpointDetailPage() {
   }
 
   const { endpoint, trustPulse, incidentLens, tls, latestVerification } = data.detail;
-  const openIncidents = data.incidents.filter((incident) => incident.status !== 'resolved');
   const latestCheck = data.detail.latestCheck;
   const showVerification = Boolean(verification ?? latestVerification);
   const verificationResult = verification ?? latestVerification;

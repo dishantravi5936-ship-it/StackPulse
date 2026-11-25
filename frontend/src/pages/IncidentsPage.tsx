@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, ArrowUpRight, CircleAlert, Clock3, ShieldCheck } from 'lucide-react';
+import { Activity, ArrowLeft, ArrowUpRight, AlertCircle, Clock3, ShieldCheck } from 'lucide-react';
 import api, { unwrap } from '../services/api';
 import { usePolling } from '../hooks/usePolling';
 import type {
@@ -37,7 +37,7 @@ function IncidentRow({
   return (
     <Link to={`/dashboard/incidents/${incident.id}`} className="incident-card surface">
       <span className={`incident-card-icon ${incident.status === 'resolved' ? 'incident-resolved' : ''}`}>
-        {incident.status === 'resolved' ? <ShieldCheck size={17} /> : <CircleAlert size={17} />}
+        {incident.status === 'resolved' ? <ShieldCheck size={17} /> : <AlertCircle size={17} />}
       </span>
       <span className="incident-card-copy">
         <strong>{incident.title}</strong>

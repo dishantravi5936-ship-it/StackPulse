@@ -46,7 +46,7 @@ function getIntelligence(
 
 function getLimit(value: unknown): number {
   const parsed = Number(value ?? 100);
-  return Number.isInteger(parsed) && parsed > 0 ? Math.min(parsed, 500) : 100;
+  return Number.isInteger(parsed) && parsed > 0 ? Math.min(parsed, 3000) : 100;
 }
 
 router.use(requireAuth);

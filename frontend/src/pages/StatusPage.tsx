@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { Activity, ArrowLeft, ArrowUpRight, CircleAlert, Clock3, LockKeyhole, Moon, RefreshCw, ShieldCheck, Sun } from 'lucide-react';
+import { Activity, AlertCircle, ArrowLeft, ArrowUpRight, Clock3, LockKeyhole, Moon, RefreshCw, ShieldCheck, Sun } from 'lucide-react';
 import api, { unwrap } from '../services/api';
 import { useTheme } from '../contexts/ThemeContext';
 import { usePolling } from '../hooks/usePolling';
@@ -67,7 +67,7 @@ function PublicOverviewPage() {
   const summary = overview.overall === 'operational'
     ? { title: 'All monitored public services are operational', icon: <ShieldCheck size={21} />, unknown: false }
     : overview.overall === 'outage'
-      ? { title: 'A service failure has been observed', icon: <CircleAlert size={21} />, unknown: false }
+      ? { title: 'A service failure has been observed', icon: <AlertCircle size={21} />, unknown: false }
       : { title: 'Monitoring is degraded or incomplete', icon: <Clock3 size={21} />, unknown: true };
 
   return (
