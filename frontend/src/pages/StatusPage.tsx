@@ -64,11 +64,13 @@ function PublicOverviewPage() {
   }
 
   const { overview, incidents } = data;
-  const summary = overview.overall === 'operational'
-    ? { title: 'All monitored public services are operational', icon: <ShieldCheck size={21} />, unknown: false }
-    : overview.overall === 'outage'
-      ? { title: 'A service failure has been observed', icon: <AlertCircle size={21} />, unknown: false }
-      : { title: 'Monitoring is degraded or incomplete', icon: <Clock3 size={21} />, unknown: true };
+  const summary = overview.endpoints.length === 0
+    ? { title: 'No public services configured', icon: <Clock3 size={21} />, unknown: true }
+    : overview.overall === 'operational'
+      ? { title: 'All monitored public services are operational', icon: <ShieldCheck size={21} />, unknown: false }
+      : overview.overall === 'outage'
+        ? { title: 'A service failure has been observed', icon: <AlertCircle size={21} />, unknown: false }
+        : { title: 'Monitoring is degraded or incomplete', icon: <Clock3 size={21} />, unknown: true };
 
   return (
     <>
@@ -133,7 +135,11 @@ function PublicOverviewPage() {
           </Card>
         )}
       </section>
-      <p className="public-note">{overview.overall === 'degraded' ? 'Unknown or stale monitoring periods are not represented as operational.' : 'Observed uptime describes completed checks only; see individual service pages for monitoring coverage.'}</p>
+      <p className="public-note">{overview.endpoints.length === 0
+        ? 'No public endpoints are configured, so service availability is unknown.'
+        : overview.overall === 'degraded'
+          ? 'Unknown or stale monitoring periods are not represented as operational.'
+          : 'Observed uptime describes completed checks only; see individual service pages for monitoring coverage.'}</p>
     </>
   );
 }

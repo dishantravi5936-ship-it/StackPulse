@@ -114,6 +114,10 @@ Returns the caller's simulated email and webhook notification records. Incident 
 
 ## Public status
 
+### `GET /status`
+
+Returns an aggregate of administrator-approved public endpoints. An empty list is `degraded`; a known outage takes precedence over unknown states; otherwise any unknown endpoint state is `degraded`. Only a non-empty set of fresh successful endpoints is reported as operational.
+
 ### `GET /public/status/:slug`
 
 Returns public summary only for an enabled endpoint explicitly made public by an administrator. The response omits the endpoint URL, owner, and private configuration and includes a 24-hour history containing only timestamps, success, HTTP status, and latency. It does not expose failure details or failure classifications. Stale or unavailable monitoring is reported as `unknown`; the last known state remains separately available. TLS expiry is `null` with `status: "unavailable"` when it could not be inspected.

@@ -34,7 +34,13 @@ router.get('/', async (_req: Request, res: Response) => {
   const hasDown = endpoints.some((endpoint) => endpoint.status === 'down');
   const hasUnknown = endpoints.some((endpoint) => endpoint.status === 'unknown');
   res.json({
-    overall: hasDown ? 'outage' : hasUnknown ? 'degraded' : 'operational',
+    overall: endpoints.length === 0
+      ? 'degraded'
+      : hasDown
+        ? 'outage'
+        : hasUnknown
+          ? 'degraded'
+          : 'operational',
     endpoints,
     generatedAt: new Date().toISOString(),
   });

@@ -109,6 +109,12 @@ describe('MVP backend API', () => {
     expect(regular.user.role).toBe('user');
   });
 
+  test('does not report an empty public status page as operational', async () => {
+    const status = await request('/api/status', 'GET', undefined, '');
+    expect(status.response.status).toBe(200);
+    expect(status.body).toMatchObject({ overall: 'degraded', endpoints: [] });
+  });
+
   test('creates an owned endpoint, runs a check, exposes public status, and enforces owner/admin access', async () => {
     const created = await request('/api/endpoints', 'POST', {
       name: 'Authorized Test Target',
@@ -154,6 +160,8 @@ describe('MVP backend API', () => {
     expect(publicEndpoint).not.toHaveProperty('url');
     expect(publicData.history[0]).toMatchObject({ success: true, httpStatus: 200 });
     expect(publicData.history[0]).not.toHaveProperty('failureClassification');
+    const publicOverview = await request('/api/status', 'GET', undefined, '');
+    expect(publicOverview.body.overall).toBe('operational');
 
     const detail = await request(`/api/endpoints/${endpointId}`);
     expect(detail.body.data).toHaveProperty('trustPulse');
