@@ -5,7 +5,7 @@
 
 ## Executive result
 
-The native monitoring and application logic have passing deterministic tests, and the local HTTP API and frontend smoke tests passed against an isolated temporary database. This is not a production-readiness certification: no authorized external endpoint was supplied, Docker Engine/Gatus were unavailable, and OmniRoute had no listener. Those live requirements are explicitly unverified below.
+The native monitoring and application logic have passing deterministic tests, and isolated runtime evidence is documented separately. This is not a production-readiness certification: no authorized external endpoint was supplied and Docker/Gatus runtime validation was unavailable.
 
 No existing StackPulse application database was found in `backend/data`. The existing Gatus SQLite database and its WAL/SHM files under `monitoring/data` were left untouched. All live API/browser tests used an isolated temporary SQLite database and disposable credentials; the temporary database was removed after testing.
 
