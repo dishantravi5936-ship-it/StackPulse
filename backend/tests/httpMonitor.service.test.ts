@@ -20,16 +20,20 @@ describe('bounded native HTTP monitoring', () => {
   let port: number;
   let responseStatus = 200;
   let responseBody = 'service is healthy';
+  let responseDelayMs = 0;
   let requestCount = 0;
+  const responseTimers: ReturnType<typeof setTimeout>[] = [];
 
   beforeAll(async () => {
     server = http.createServer((request, response) => {
       requestCount += 1;
-      response.statusCode = request.url === '/redirected' ? 200 : responseStatus;
+      const status = request.url === '/404' ? 404 : request.url === '/redirected' ? 200 : responseStatus;
+      response.statusCode = status;
       if (request.url === '/redirect') {
         response.setHeader('Location', `http://service.test:${port}/redirected`);
       }
-      response.end(responseBody);
+      const timer = setTimeout(() => response.end(responseBody), responseDelayMs);
+      responseTimers.push(timer);
     });
     await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
     const address = server.address();
@@ -38,6 +42,7 @@ describe('bounded native HTTP monitoring', () => {
   });
 
   afterAll(async () => {
+    responseTimers.forEach(clearTimeout);
     await new Promise<void>((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
   });
 
@@ -54,6 +59,39 @@ describe('bounded native HTTP monitoring', () => {
     const result = await httpMonitor.check(`http://service.test:${port}/health`);
     expect(result).toMatchObject({ success: false, statusCode: 503, failureClassification: 'http_status' });
   });
+
+  test('records an actual HTTP 404 as an HTTP failure', async () => {
+    responseStatus = 200;
+    responseDelayMs = 0;
+    const result = await httpMonitor.check(`http://service.test:${port}/404`);
+    expect(result).toMatchObject({ success: false, statusCode: 404, failureClassification: 'http_status' });
+  });
+
+  test('measures real response latency', async () => {
+    responseStatus = 200;
+    responseBody = 'service is healthy';
+    responseDelayMs = 120;
+    const result = await httpMonitor.check(`http://service.test:${port}/delayed`);
+    responseDelayMs = 0;
+    expect(result.success).toBe(true);
+    expect(result.statusCode).toBe(200);
+    expect(result.latencyMs).not.toBeNull();
+    expect(result.latencyMs ?? 0).toBeGreaterThanOrEqual(100);
+  });
+
+  test('terminates a request that exceeds the eight-second timeout', async () => {
+    responseStatus = 200;
+    responseBody = 'too late';
+    responseDelayMs = 9_000;
+    const result = await httpMonitor.check(`http://service.test:${port}/timeout`);
+    responseDelayMs = 0;
+    expect(result).toMatchObject({
+      success: false,
+      statusCode: null,
+      failureClassification: 'timeout',
+    });
+    expect(result.latencyMs).not.toBeNull();
+  }, 12_000);
 
   test('matches a configured exact HTTP status instead of accepting any 2xx response', async () => {
     responseStatus = 204;
