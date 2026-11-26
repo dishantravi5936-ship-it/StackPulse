@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import api, { unwrap } from '../services/api';
 import { usePolling } from '../hooks/usePolling';
+import { useAuth } from '../contexts/AuthContext';
 import type { ApiEnvelope, DashboardData, EndpointWithIntelligence } from '../types';
 import { formatDate, formatLatency, formatPercent, formatRelative, serviceLabel } from '../lib/format';
 import { Button, Card, EmptyState, ErrorBanner, LoadingBlock, MetricCard, PageHeader, StatusBadge } from '../components/ui';
@@ -30,6 +31,8 @@ function averageLatency(endpoints: EndpointWithIntelligence[]): number | null {
 }
 
 export default function DashboardPage() {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
   const load = useCallback(async () => unwrap(await api.get<ApiEnvelope<DashboardData>>('/dashboard')), []);
   const { data, loading, error, updatedAt, refresh } = usePolling(load);
 
@@ -110,7 +113,11 @@ export default function DashboardPage() {
               <Link to="/dashboard/endpoints" className="section-action">All endpoints <ArrowUpRight size={13} /></Link>
             </div>
             {endpoints.length === 0 ? (
-              <EmptyState title="Nothing monitored yet" description="Create an endpoint to start collecting real health checks." action={<Link className="button button-primary button-sm" to="/dashboard/endpoints">Add endpoint</Link>} />
+              <EmptyState
+                title="Nothing monitored yet"
+                description={isAdmin ? 'Create an endpoint to start collecting real health checks.' : 'An administrator can add endpoints for this workspace.'}
+                action={isAdmin ? <Link className="button button-primary button-sm" to="/dashboard/endpoints">Add endpoint</Link> : undefined}
+              />
             ) : (
               <div className="table-wrap">
                 <table className="data-table">

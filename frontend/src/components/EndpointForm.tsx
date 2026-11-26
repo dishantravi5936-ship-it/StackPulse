@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import type { Endpoint } from '../types';
 import { Button, Field, Modal } from './ui';
 
@@ -35,6 +35,18 @@ export function EndpointForm({
   const [interval, setInterval] = useState<'30' | '60' | '120'>('60');
   const [isPublic, setIsPublic] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    setName(endpoint?.name ?? '');
+    setUrl(endpoint?.url ?? '');
+    setGroup(endpoint?.group_name ?? 'core');
+    setExpectedStatus(String(endpoint?.expected_status ?? 200));
+    setExpectedContent(endpoint?.expected_content ?? '');
+    setInterval(String(endpoint?.interval_seconds ?? 60) as '30' | '60' | '120');
+    setIsPublic(Boolean(endpoint?.public_slug));
+    setValidationError(null);
+  }, [open, endpoint]);
 
   const applyOpen = (nextOpen: boolean) => {
     if (nextOpen && !open) {
